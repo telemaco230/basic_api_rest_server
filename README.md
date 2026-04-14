@@ -9,9 +9,9 @@ A Laravel-based REST API server implementing JWT authentication with Swagger/Ope
 | Layer | Technology | Version |
 |-------|-----------|---------|
 | Runtime | PHP | 8.3+ |
-| Framework | Laravel | 11.x |
+| Framework | Laravel | 13.x |
 | Authentication | tymon/jwt-auth | 2.x |
-| API Documentation | darkaonline/l5-swagger | 8.x |
+| API Documentation | darkaonline/l5-swagger | 11.x |
 | Database | SQLite (dev) / MySQL (prod) | - |
 
 ### Authentication Flow
