@@ -10,9 +10,65 @@ A Laravel-based REST API server implementing JWT authentication with Swagger/Ope
 |-------|-----------|---------|
 | Runtime | PHP | 8.3+ |
 | Framework | Laravel | 13.x |
-| Authentication | tymon/jwt-auth | 2.x |
-| API Documentation | darkaonline/l5-swagger | 11.x |
+| Authentication | tymon/jwt-auth | ^2.3 |
+| API Documentation | darkaonline/l5-swagger | ^11.0 |
 | Database | SQLite (dev) / MySQL (prod) | - |
+
+### System Architecture
+
+```
+┌─────────────────────────────────────────────────┐
+│                   CLIENT LAYER                  │
+│         (Web Browser / Mobile App / API Client) │
+└──────────────────┬──────────────────────────────┘
+                   │ HTTPS
+                   ▼
+┌─────────────────────────────────────────────────┐
+│                  API GATEWAY                    │
+│            Laravel Router (routes/api.php)      │
+└──────────────────┬──────────────────────────────┘
+                   │
+          ┌────────┴────────┐
+          │                 │
+          ▼                 ▼
+   ┌─────────────┐   ┌─────────────────┐
+   │   Public    │   │    Protected    │
+   │  Endpoints  │   │   Endpoints     │
+   │  POST login │   │  GET  /user     │
+   └──────┬──────┘   │  POST /logout   │
+          │          │  POST /refresh  │
+          │          └────────┬────────┘
+          │                   │ JWT Middleware
+          │                   │ auth:api
+          │                   ▼
+          │          ┌─────────────────┐
+          │          │   JWT Guard     │
+          │          │ (tymon/jwt-auth)│
+          │          └────────┬────────┘
+          │                   │
+          └─────────┬─────────┘
+                    ▼
+         ┌──────────────────────┐
+         │    AuthController    │
+         │  login()             │
+         │  logout()            │
+         │  user()              │
+         │  refresh()           │
+         └──────────┬───────────┘
+                    │
+                    ▼
+         ┌──────────────────────┐
+         │    User Model        │
+         │  implements          │
+         │  JWTSubject          │
+         └──────────┬───────────┘
+                    │
+                    ▼
+         ┌──────────────────────┐
+         │      Database        │
+         │  users table         │
+         └──────────────────────┘
+```
 
 ### Authentication Flow
 
@@ -32,6 +88,49 @@ Client → GET /api/auth/user
        → JWT Middleware validates token
        → Auth::user() returns user data
        → Return user JSON
+```
+
+#### Token Refresh Flow
+```
+Client → POST /api/auth/refresh
+       → Authorization: Bearer <expired_token>
+       → JWT Middleware validates token (allows refresh)
+       → Auth::refresh() generates new token
+       → Old token blacklisted
+       → Return new {access_token, token_type, expires_in}
+```
+
+#### Logout Flow
+```
+Client → POST /api/auth/logout
+       → Authorization: Bearer <token>
+       → JWT Middleware validates token
+       → Auth::logout() blacklists token
+       → Return {message: "Successfully logged out"}
+```
+
+## Directory Structure
+
+```
+├── app/
+│   ├── Http/
+│   │   └── Controllers/
+│   │       └── AuthController.php    # JWT auth endpoints + Swagger annotations
+│   └── Models/
+│       └── User.php                  # JWTSubject implementation
+├── config/
+│   ├── auth.php                      # Guard & provider config (JWT as default)
+│   ├── jwt.php                       # JWT configuration (TTL, algo, blacklist)
+│   └── l5-swagger.php               # Swagger/OpenAPI configuration
+├── database/
+│   └── migrations/                   # Database migrations
+├── routes/
+│   └── api.php                       # API route definitions
+├── storage/
+│   └── api-docs/                     # Generated Swagger JSON
+└── tests/
+    └── Feature/
+        └── AuthControllerTest.php    # Feature tests for auth endpoints
 ```
 
 ## API Endpoints
