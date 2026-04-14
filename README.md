@@ -47,7 +47,7 @@ Client → GET /api/auth/user
 
 ### Prerequisites
 
-- PHP >= 8.2
+- PHP >= 8.3
 - Composer
 - A supported database (MySQL, PostgreSQL, SQLite)
 
